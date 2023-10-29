@@ -1,0 +1,9 @@
+{{ define "board" }}
+{{ if .Pause }}
+<div id="board" hx-trigger="load" hx-get="genetic" hx-vals="js:{update: false}"></div>
+{{ else if .Next }}
+<div id="board" hx-trigger="load" hx-get="genetic" hx-vals="js:{update: true}"></div>
+{{ else }}
+<div id="board" hx-trigger="load, every {{.Time}}ms" hx-get="genetic" hx-vals="js:{update: true}"></div>
+{{ end }}
+{{ end }}

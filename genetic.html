@@ -1,0 +1,9 @@
+{{define "genetic"}}
+<p>Generation: {{.Generation}}</p>
+{{range $x, $row := .Board}}
+<div class="row">
+    {{range $y, $val := $row}} <div class="cell {{if $val}}alive{{end}}" hx-get="place" hx-target="#board"
+        hx-vals="js:{x: {{$x}}, y: {{$y}}}"></div> {{end}}
+</div>
+{{end}}
+{{end}}

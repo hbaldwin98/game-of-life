@@ -1,0 +1,31 @@
+{{ define "index" }}
+<html>
+
+<head>
+    <title>{{.Title}}</title>
+    <link rel="stylesheet" type="text/css" href="/public/static/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.6"
+        integrity="sha384-FhXw7b6AlE/jyjlZH5iHa/tTe9EpJ1Y55RjcgPbjeWMskSxZt1v9qkxLJWNJaGni"
+        crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <p>{{.Body}}</p>
+    
+    <label for="range">Generations per second</label>
+    <input id="range" type="number" hx-get="board" hx-trigger="load, click" hx-vals="js:{tick: event.target.value}" min="1"
+        max="10" value="1" hx-target="#board-container">
+
+    <input id="pause" type="button" value="Pause" hx-get="board" hx-trigger="click" hx-vals="js:{pause: true}"
+        hx-target="#board-container">
+
+    <input id="next" type="button" value="Next" hx-get="board" hx-trigger="click" hx-vals="js:{next: true}"
+        hx-target="#board-container">
+
+    <div id="board-container">
+    </div>
+</body>
+
+</html>
+
+{{ end }}

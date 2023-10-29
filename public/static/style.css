@@ -1,0 +1,23 @@
+.row {
+    display: flex;
+    flex-direction: row
+}
+
+#board-container {
+    border: 1px solid #000;
+    width: fit-content;
+}
+
+.cell {
+    width: 15px;
+    height: 15px;
+    border: 1px solid #00000030;
+
+    &:hover {
+        background-color: #000;
+    }
+}
+
+.alive {
+    background-color: #000;
+}

@@ -3,6 +3,7 @@ package main
 import (
 	"html/template"
 	"log"
+	"main/conway"
 	"net/http"
 	"os"
 	"strconv"
@@ -17,6 +18,7 @@ func main() {
 	router.Handle("/public/", http.StripPrefix("/public/", http.FileServer(http.Dir("public"))))
 
 	// Routes
+	router.Handle("/", http.RedirectHandler("/index", http.StatusFound))
 	router.HandleFunc("/index", indexHandler)
 	router.HandleFunc("/board", boardHandler)
 	router.HandleFunc("/genetic", geneticHandler)
@@ -24,19 +26,19 @@ func main() {
 
 	// Middleware
 	logger := log.New(os.Stdout, "", log.LstdFlags)
-	loggingMiddleware := LoggingMiddleware(logger)
+	loggingMiddleware := loggingMiddleware(logger)
 
 	// Router, wrapped with middleware
 	configuredRouter := loggingMiddleware(router)
 
-	log.Printf("Server started in %s", time.Since(timer))
+	log.Printf("Server started on localhost:8080 in %s", time.Since(timer))
 	if err := http.ListenAndServe(":8080", configuredRouter); err != nil {
 		log.Fatalf("Could not start server: %s\n", err.Error())
 		os.Exit(1)
 	}
 }
 
-func LoggingMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
+func loggingMiddleware(logger *log.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
@@ -68,7 +70,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := PageData{
 		Title: "Game of Life",
-        Body:  "Welcome to the Game of Life!",
+		Body:  "Welcome to the Game of Life!",
 	}
 	t, _ := template.ParseFiles("public/index.html")
 
@@ -111,18 +113,13 @@ func boardHandler(w http.ResponseWriter, r *http.Request) {
 		data.Time = 1000 / timeInSeconds
 	}
 
-	t, _ := template.ParseFiles("board.html")
+	t := parseTemplate("board.html")
 
 	t.ExecuteTemplate(w, "board", data)
 }
 
-type GeneticData struct {
-	Board      [][]bool
-	Generation int
-}
-
-var geneticBoard GeneticData
-var boardSize int = 40
+var BOARD_SIZE int = 40
+var geneticBoard conway.GeneticData
 
 func geneticHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/genetic" {
@@ -131,14 +128,14 @@ func geneticHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if geneticBoard.Board == nil {
-		geneticBoard.Board = make([][]bool, boardSize)
+		geneticBoard.Board = make([][]bool, BOARD_SIZE)
 		for i := range geneticBoard.Board {
-			geneticBoard.Board[i] = make([]bool, boardSize)
+			geneticBoard.Board[i] = make([]bool, BOARD_SIZE)
 		}
 	}
 
 	if r.URL.Query().Get("update") == "true" {
-		geneticBoard.NextGeneration()
+		geneticBoard.NextGeneration(BOARD_SIZE)
 		geneticBoard.Generation++
 	}
 
@@ -179,65 +176,6 @@ func placeHandler(w http.ResponseWriter, r *http.Request) {
 	if err := t.ExecuteTemplate(w, "genetic", &geneticBoard); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-}
-
-func (g *GeneticData) NextGeneration() {
-	newBoard := make([][]bool, boardSize)
-	for i := range newBoard {
-		newBoard[i] = make([]bool, boardSize)
-	}
-
-	for i, gene := range g.Board {
-		for j, alive := range gene {
-
-			neighbors := g.GetNumberNeighbors(i, j)
-
-			if alive {
-				if neighbors < 2 || neighbors > 3 {
-					newBoard[i][j] = false
-				} else {
-					newBoard[i][j] = true
-				}
-			} else {
-				if neighbors == 3 {
-					newBoard[i][j] = true
-				} else {
-					newBoard[i][j] = false
-				}
-			}
-		}
-	}
-
-	for i := range g.Board {
-		copy(g.Board[i], newBoard[i])
-	}
-}
-
-func (g *GeneticData) GetNumberNeighbors(x, y int) int {
-	count := 0
-
-	neighbors := [][2]int{
-		{-1, -1}, {-1, 0}, {-1, 1},
-		{0, -1}, {0, 1},
-		{1, -1}, {1, 0}, {1, 1},
-	}
-
-	for _, offset := range neighbors {
-		nX, nY := x+offset[0], y+offset[1]
-		if nX >= 0 && nX < boardSize && nY >= 0 && nY < boardSize && g.GetGene(nX, nY) {
-			count++
-		}
-	}
-
-	return count
-}
-
-func (g *GeneticData) GetGene(x, y int) bool {
-	if x < 0 || x >= boardSize || y < 0 || y >= boardSize {
-		return false
-	}
-
-	return g.Board[x][y]
 }
 
 func parseTemplate(filename string) *template.Template {
